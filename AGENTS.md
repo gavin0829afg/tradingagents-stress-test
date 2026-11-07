@@ -52,6 +52,7 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
    （不能根据 2025 年的结果调整任何东西。）
 6. **Model cutoff rule.** Do not suggest swapping the agent model for a newer API model (GPT, Claude, Gemini, etc.) for performance evaluation — their training data covers 2023 and 2025, which contaminates the test.
    （不要建议换成更新的 API 模型来评估收益，它们见过测试时期的数据。）
+6a. **Isolate agent memory per run.** TradingAgents keeps a persistent lesson log (`memory_log_path`, default `~/.tradingagents/memory/trading_memory.md`) shared by all runs. Every run must use its own fresh, empty memory file under `results/raw/<exp>/<run_id>/`. Shared memory leaks future outcomes into earlier dates, leaks real identities into masked runs, and couples seeds. `data_cache_dir` must point inside the project (`results/raw/cache/`) so cached data can be audited.    （每次运行必须使用独立的空记忆文件：共用记忆会把未来结果泄漏给更早的日期、把真实身份泄漏给遮蔽组，并让不同种子互相影响。数据缓存放在项目目录内，便于审查。）
 
 ### Repo hygiene（仓库规范）
 7. **Do not modify `external/TradingAgents/`.** It is pinned. Change behavior via wrappers, config, or monkeypatching in `src/`, and document each patch.

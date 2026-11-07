@@ -12,5 +12,3 @@
 - debate rounds:
 - Python version: 3.12.10 (.venv)
 - Date:
-
-\n

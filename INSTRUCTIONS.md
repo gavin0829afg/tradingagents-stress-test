@@ -431,6 +431,7 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 2026-11-06 | Exp 1 → 2×2 normal/masked design (DiD) | 区分记忆效应与市场环境变化 |
 | 2026-11-06 | Plan B (US banks) as default universe | 加拿大银行季报为 6-K，通常无 XBRL |
 | 2026-11-06 | Temperature 0.7, seeds vary | temperature=0 下 seed 几乎无效 |
+| 2026-11-06 | Per-run isolated memory_log_path; project-local data_cache_dir | 默认共用的记忆文件会造成时间泄漏和遮蔽失效 |
 | 2026-11-06 | Pin TradingAgents **v0.7.1** (commit `c4544913a14e`), not v0.7.0 | v0.7.1 修复了前视泄漏：未补零的日期（如 `2024-7-5`）会让 EDGAR 返回决策日之后的财报 (#1488)；还修复了财报季度错位 (#1517) 和按未收盘 K 线计分 (#1548) |
 | 2026-11-06 | Agent model built: `llama3.1-8k`, verified 8K context on `/v1`, 100% GPU | 7,025-token 测试 prompt 未被截断 |
 | | *(Week 1 results go here)* | |
@@ -449,5 +450,3 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 6 | Failed runs logged as their own status | 失败默认变成 HOLD 会压低 hit rate；如果 2025 更容易失败，会制造假的记忆差距 |
 | 7 | Exp 4 adds matched controls (160 → 256 runs incl. seeds/stocks change) | 原计数没有包含非财报对照组 |
 | 8 | Pre-registration before OOS runs | 防止看到结果后再调整指标 |
-
-\n
