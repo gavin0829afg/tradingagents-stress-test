@@ -135,8 +135,7 @@ ollama ps
 ```powershell
 git clone https://github.com/TauricResearch/TradingAgents external/TradingAgents
 cd external/TradingAgents
-git tag                      # 找到 v0.7.0 对应的 tag 名
-git checkout v0.7.0
+git checkout v0.7.1          # 修复了 EDGAR 日期泄漏 (#1488)，不要用 v0.7.0
 git rev-parse HEAD           # 把 hash 写进 results/RUN_INFO.md
 cd ../..
 python -m venv .venv
@@ -164,9 +163,19 @@ print(decision)
 ```
 
 核对清单：
-- [ ] `temperature` 和 `seed` 能否从 config 传到 LLM 调用？不能的话需要在 wrapper 里改（Week 2）。
+- [x] `temperature` 可从 config 传到 LLM；`seed` 不受 v0.7.1 config 支持，需在 Week 2 wrapper 层处理并验证。
 - [ ] 数据源配置里 news / social 确实关闭了。
-- [ ] 输出评级是 3 档（BUY / HOLD / SELL）还是 5 档？决定 §5.3 的映射方式。
+- [x] v0.7.1 最终评级为 5 档（Buy / Overweight / Hold / Underweight / Sell），未解析输出为 REVIEW；Week 2 按此确认 §5.3 映射。
+
+#### v0.7.1 source audit（2026-11-06；只读源码）
+
+- Config entry: `tradingagents/default_config.py` (`DEFAULT_CONFIG`). Ollama uses `llm_provider="ollama"`, with `backend_url="http://localhost:11434/v1"`; tier models use `deep_think_llm` / `quick_think_llm`.
+- `temperature` is supported through config and forwarded by `tradingagents/llm_clients/factory.py`. There is no `seed` config key or forwarding in the factory, so seed control needs a wrapper-level implementation and verification.
+- Create `TradingAgentsGraph(selected_analysts=["market", "fundamentals"], config=config)` to select the analysts. Set `max_debate_rounds` and `max_risk_discuss_rounds` in config.
+- Final `propagate()` rating is five-tier: `Buy`, `Overweight`, `Hold`, `Underweight`, `Sell`, or `REVIEW` if no rating is parseable. The Portfolio Manager schema is in `tradingagents/agents/schemas.py`; fallback parsing is in `tradingagents/agents/rating.py`. The Trader's separate transaction action is three-tier (`Buy`, `Hold`, `Sell`).
+- Built-in backtest: `tradingagents/backtest.py::run_backtest`. `holding_period_days` defaults to 5. Settlement in `tradingagents/memory/settlement.py::fetch_returns` enters at the first close after `trade_date` and exits after five more instrument trading sessions.
+- Analyst-facing data tools are in `tradingagents/agents/tools.py`: `get_stock_data`, `get_indicators`, and fundamentals tools (`get_fundamentals`, `get_balance_sheet`, `get_income_statement`, `get_cashflow`). Vendor implementations are routed through `tradingagents/dataflows/router.py`; Yahoo price/indicator data is in `dataflows/vendors/yahoo/market.py`, and filing-date-filtered SEC statements are in `dataflows/vendors/sec_edgar.py`.
+- Masking implication: tool-output wrapping belongs at the analyst tool boundary, but masking tool outputs alone does not hide identity/date because the graph resolves and injects real instrument context and `trade_date`. The wrapper must account for those graph inputs/context too.
 
 ### 4.4 Pilot runs（5 次试跑）
 
@@ -422,6 +431,8 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 2026-11-06 | Exp 1 → 2×2 normal/masked design (DiD) | 区分记忆效应与市场环境变化 |
 | 2026-11-06 | Plan B (US banks) as default universe | 加拿大银行季报为 6-K，通常无 XBRL |
 | 2026-11-06 | Temperature 0.7, seeds vary | temperature=0 下 seed 几乎无效 |
+| 2026-11-06 | Pin TradingAgents **v0.7.1** (commit `c4544913a14e`), not v0.7.0 | v0.7.1 修复了前视泄漏：未补零的日期（如 `2024-7-5`）会让 EDGAR 返回决策日之后的财报 (#1488)；还修复了财报季度错位 (#1517) 和按未收盘 K 线计分 (#1548) |
+| 2026-11-06 | Agent model built: `llama3.1-8k`, verified 8K context on `/v1`, 100% GPU | 7,025-token 测试 prompt 未被截断 |
 | | *(Week 1 results go here)* | |
 
 ---
@@ -438,3 +449,5 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 6 | Failed runs logged as their own status | 失败默认变成 HOLD 会压低 hit rate；如果 2025 更容易失败，会制造假的记忆差距 |
 | 7 | Exp 4 adds matched controls (160 → 256 runs incl. seeds/stocks change) | 原计数没有包含非财报对照组 |
 | 8 | Pre-registration before OOS runs | 防止看到结果后再调整指标 |
+
+\n
