@@ -1,0 +1,123 @@
+# CONTRIBUTING — Collaboration rules（两人协作规则）
+
+> 本项目由 **Gav**（Gavin Li）和 **Aya**（艾亚）共同完成。本文件规定两人在 GitHub 上怎么署名、开分支、提交和合并，保证每一处改动都能看出是谁做的、谁审过。
+>
+> AI 助手（Codex / Claude）也遵守本文件；`AGENTS.md` §6 引用了这里的规则。
+
+---
+
+## 1. Members（成员）
+
+| Tag | Name | GitHub | 用于 commit / PR | 用于 branch |
+|---|---|---|---|---|
+| `Gav` | Gavin Li | `gavin0829afg` | `[Gav]` | `gav/` |
+| `Aya` | 艾亚 | *(待补充)* | `[Aya]` | `aya/` |
+
+---
+
+## 2. 署名规则（最重要）
+
+### 2.1 Commit message
+
+格式：
+
+```
+[Tag] <module>: <what changed>
+```
+
+例子：
+
+```
+[Gav] costs: add per-side spread model
+[Aya] masking: rebase prices to decision-date close
+[Aya] docs: fill week-1 go/no-go table
+```
+
+- **谁负责这次改动，就写谁的 Tag。** 用 AI 写的代码也一样：Aya 让 Codex 写的提交，前缀就是 `[Aya]`。
+- **有 AI 参与时，在 commit message 末尾加一行说明是哪个 AI**，例如：
+  ```
+  AI-assisted: Codex
+  ```
+  或 Claude 自动加的 `Co-Authored-By: Claude ...`。这样以后可以看出哪些代码经过人工审查、哪些是 AI 写的。
+
+### 2.2 Branch name
+
+格式：
+
+```
+<tag>/<short-topic>
+```
+
+例子：`gav/pilot-script`、`aya/masking-spec`、`aya/fix-leak-check`
+
+- 全小写，单词之间用 `-` 连接。
+- 一个分支只做一件事，做完合并后删除。
+
+### 2.3 Pull Request
+
+- **PR 标题和 commit 一样，以 `[Tag]` 开头**，例如 `[Aya] masking: implement price and date masking`。
+- 合并时选 **Squash and merge**：main 上每个 PR 只留一个提交，提交信息就是 PR 标题，前缀自然保留下来。
+
+### 2.4 Git 身份
+
+每个人在**自己电脑上的这个仓库里**设置一次（不要改别人的配置）：
+
+```powershell
+git config user.name "艾亚的名字"
+git config user.email "<GitHub noreply 邮箱>"
+```
+
+noreply 邮箱在 GitHub → Settings → Emails 里找，格式是 `数字+用户名@users.noreply.github.com`。用它可以避免在公开仓库里暴露真实邮箱。
+
+---
+
+## 3. 工作流程（每次改动都按这个顺序）
+
+```powershell
+# 1. 先同步最新的 main
+git switch main
+git pull
+
+# 2. 开自己的分支
+git switch -c aya/masking-spec
+
+# 3. 改代码、提交（可以多次）
+git add <files>
+git commit -m "[Aya] masking: ..."
+
+# 4. 推送分支
+git push -u origin aya/masking-spec
+
+# 5. 开 PR，请对方审查
+gh pr create --title "[Aya] masking: ..." --body "做了什么 / 怎么测的 / 需要重点看哪里"
+```
+
+然后：
+
+1. **对方审查**：在 PR 页面看改动、留评论，没问题就 Approve。
+2. **高风险模块**（`AGENTS.md` §5：masking、leak_check、stats、costs、run_grid、评级映射）**合并前还要让 Claude 审查一遍**，把审查结论贴到 PR 评论里。
+3. **合并**：Squash and merge，然后删除分支。
+4. **不直接往 main 推送。** 包括文档改动在内，都走 PR，这样对方一定能看到。
+
+---
+
+## 4. 分工与避免冲突
+
+- **开工前先认领任务**：在 GitHub 上开一个 Issue（或在已有 Issue 上 assign 给自己），写明要改哪些文件。两个人（以及各自的 AI）不要同时改同一个文件。
+- **设计决定要两个人都同意**：实验网格、指标、阈值、成本假设等预注册设定（`AGENTS.md` 规则 4），修改前在 Issue 或 PR 里讨论，确定后写进 `INSTRUCTIONS.md` §11 Decision Log，注明是谁提出的、谁同意的。
+- **AI 汇报**：Codex 的汇报（`AGENTS.md` §8 格式）贴到对应 PR 的描述或评论里，对方和 Claude 都能看到。
+
+---
+
+## 5. 实验运行与结果
+
+- **谁运行、在哪台机器上运行都要记录。** 两个人的电脑硬件不同，同一个 seed 在不同 GPU 上的输出也可能有细微差别。每条运行记录都要带 `operator`（`gav` / `aya`）和 `machine` 字段（见 `INSTRUCTIONS.md` §5.3）。
+- **同一个实验尽量在同一台机器上跑完。** 如果要两台机器分摊，按"股票"或"周"切分，并在 Decision Log 里记录怎么分的。
+- **原始结果不进 git**（`results/raw/` 已被忽略）。需要共享时，用两人约定的网盘传输，`results/tables/` 下的汇总表和 `RUN_INFO.md` 可以提交。
+- 每台机器各自在 `RUN_INFO.md` 里记录一份环境信息（Ollama 版本、模型 digest、GPU 型号）。
+
+---
+
+## 6. 不能提交的内容
+
+见 `AGENTS.md` 规则 8：`.env`、API key、token、Bloomberg 数据、大型原始日志。提交前运行 `git status` 检查一遍。

@@ -21,18 +21,18 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
 
 ## 2. Collaboration setup（分工方式）
 
-本项目同时使用两个 AI 助手，由项目负责人 Gav 在中间协调：
+本项目由 **Gav**（Gavin Li）和 **Aya**（艾亚）两人共同负责，同时使用两个 AI 助手。署名、分支和 PR 规则见 `CONTRIBUTING.md`。下文中的 "owner" 指发起当前任务的那位负责人（Gav 或 Aya）。
 
 | Role | Who | 负责内容 |
 |---|---|---|
 | Design & review | Claude (Opus 5.5) | 实验设计、masking / 统计方案、代码审查、排错 |
 | Implementation | **Codex (you)** | 按 spec 实现模块、写测试、修 bug |
-| Owner | Gav | 决定设计、批准改动、运行长时间实验 |
+| Owners | Gav & Aya | 决定设计、批准改动、运行长时间实验；预注册设定的修改需要两人都同意 |
 
 协作规则：
 1. **一次只做一个模块或一个任务。** 不顺手重构无关文件。
 2. **不和另一个助手同时改同一个文件。** 如果发现某文件近期被改过且与你的任务冲突，停下来说明。
-3. **Spec 不清楚就停下来问**，不要自己发明实验设计、指标定义或数据处理方式。这类决定属于 Gav（在 Claude 协助下）。
+3. **Spec 不清楚就停下来问**，不要自己发明实验设计、指标定义或数据处理方式。这类决定属于 owner（Gav / Aya，在 Claude 协助下）。
 4. **高风险模块（§5）完成后需要交叉审查**：你实现，Claude 审查，或反过来。请在汇报里明确标出需要审查的部分。
 
 ---
@@ -46,19 +46,20 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
    （失败的运行必须单独标记状态，不能在 runner 里悄悄变成 HOLD。）
 3. **Never overwrite or delete run logs.** `results/raw/runs.jsonl` is append-only. Re-runs get a new `started_at`; deduplication happens in analysis, explicitly.
    （运行日志只追加，不覆盖、不删除。）
-4. **Do not change pre-registered settings** (grid, metrics, thresholds, cost assumptions, fixed settings in `INSTRUCTIONS.md` §1.1) without an explicit instruction from Gav.
+4. **Do not change pre-registered settings** (grid, metrics, thresholds, cost assumptions, fixed settings in `INSTRUCTIONS.md` §1.1) without explicit agreement from both owners (Gav and Aya), recorded in the Decision Log.
    （预注册的设定不能自行修改。）
 5. **No tuning on out-of-sample data.** Do not adjust prompts, parameters, or parsing rules based on 2025 results.
    （不能根据 2025 年的结果调整任何东西。）
 6. **Model cutoff rule.** Do not suggest swapping the agent model for a newer API model (GPT, Claude, Gemini, etc.) for performance evaluation — their training data covers 2023 and 2025, which contaminates the test.
    （不要建议换成更新的 API 模型来评估收益，它们见过测试时期的数据。）
-6a. **Isolate agent memory per run.** TradingAgents keeps a persistent lesson log (`memory_log_path`, default `~/.tradingagents/memory/trading_memory.md`) shared by all runs. Every run must use its own fresh, empty memory file under `results/raw/<exp>/<run_id>/`. Shared memory leaks future outcomes into earlier dates, leaks real identities into masked runs, and couples seeds. `data_cache_dir` must point inside the project (`results/raw/cache/`) so cached data can be audited.    （每次运行必须使用独立的空记忆文件：共用记忆会把未来结果泄漏给更早的日期、把真实身份泄漏给遮蔽组，并让不同种子互相影响。数据缓存放在项目目录内，便于审查。）
+6a. **Isolate agent memory per run.** TradingAgents keeps a persistent lesson log (`memory_log_path`, default `~/.tradingagents/memory/trading_memory.md`) shared by all runs. Every run must use its own fresh, empty memory file under `results/raw/<exp>/<run_id>/`. Shared memory leaks future outcomes into earlier dates, leaks real identities into masked runs, and couples seeds. `data_cache_dir` must point inside the project (`results/raw/cache/`) so cached data can be audited.
+   （每次运行必须使用独立的空记忆文件：共用记忆会把未来结果泄漏给更早的日期、把真实身份泄漏给遮蔽组，并让不同种子互相影响。数据缓存放在项目目录内，便于审查。）
 
 ### Repo hygiene（仓库规范）
 7. **Do not modify `external/TradingAgents/`.** It is pinned. Change behavior via wrappers, config, or monkeypatching in `src/`, and document each patch.
    （上游代码已锁定版本，只能在 `src/` 里包装，不能直接改。）
 8. **Never commit** `.env`, API keys, tokens, Bloomberg data, or large raw logs. Never print secrets in logs.
-9. **Never start long runs** (anything beyond a tiny smoke test, roughly > 5 LLM calls) without Gav's go-ahead. The laptop has 8 GB VRAM and runs are slow.
+9. **Never start long runs** (anything beyond a tiny smoke test, roughly > 5 LLM calls) without the owner's go-ahead. Local GPUs are small and runs are slow.
    （不要擅自启动长时间实验。）
 10. **No new dependencies** without saying why. Prefer the standard library, `numpy`, `pandas`, `yfinance`, `pyyaml`, `pytest`.
 
@@ -72,7 +73,7 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
 | Python | 3.11+, venv at `.venv/` |
 | TradingAgents | pinned clone in `external/TradingAgents/`, commit in `results/RUN_INFO.md` |
 | LLM server | Ollama, model `llama3.1-8k`, `http://localhost:11434/v1` |
-| Hardware | 16 GB RAM, 8 GB VRAM — one Ollama run at a time, no parallel LLM calls |
+| Hardware | Gav: 16 GB RAM, RTX 5060 Laptop 8 GB VRAM; Aya: *(待补充)* — one Ollama run at a time, no parallel LLM calls |
 
 - 路径用 `pathlib`，不要写死 `C:\Users\...`。
 - 读 `configs/*.yaml` 获取实验参数，不要在代码里硬编码网格。
@@ -104,7 +105,8 @@ Key formulas & definitions: `INSTRUCTIONS.md` §5.3 (log schema, rating mapping)
 - Use `logging`, not `print`, in `src/`.
 - Tests in `tests/`, run with `pytest`. Tests must not call Ollama or the network — mock or use fixtures.
 - Dates as ISO strings `YYYY-MM-DD` or `datetime.date`; never naive timestamps mixed with dates.
-- Small commits, one topic each. Commit message format: `<module>: <what changed>`.
+- Small commits, one topic each. Commit message format: `[Gav] <module>: <what changed>` or `[Aya] ...` — the tag is the owner who started the task, even when an AI wrote the code. Add an `AI-assisted: Codex` trailer line. Branches: `gav/<topic>` or `aya/<topic>`. Never push directly to `main`; open a PR. Full rules: `CONTRIBUTING.md`.
+  （commit 前缀写发起任务的人，AI 写的代码也一样；末尾加 AI-assisted 说明；分支用 gav/ 或 aya/ 开头；不直接推 main，走 PR。）
 
 ---
 
@@ -122,7 +124,7 @@ Key formulas & definitions: `INSTRUCTIONS.md` §5.3 (log schema, rating mapping)
 
 ## 8. Report format（每次任务结束的汇报格式）
 
-请按下面格式汇报，方便 Gav 直接转给 Claude 审查：
+请按下面格式汇报，方便 owner（Gav / Aya）贴到 PR 里，并转给 Claude 审查：
 
 ```
 ## Task
@@ -142,7 +144,7 @@ Key formulas & definitions: `INSTRUCTIONS.md` §5.3 (log schema, rating mapping)
 <需要重点审查的函数或逻辑，尤其是 §5 中的高风险部分>
 
 ## Open questions
-<需要 Gav 决定的问题>
+<需要 owner 决定的问题>
 ```
 
 不要声称"已测试"或"已验证"而实际没有运行；没跑的就写没跑。

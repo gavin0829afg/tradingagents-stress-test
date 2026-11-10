@@ -262,6 +262,7 @@ print(decision)
   "period": "IS", "variant": "normal", "config": "full", "seed": 1,
   "model": "llama3.1-8k", "temperature": 0.7, "num_ctx": 8192,
   "ta_commit": "<hash>",
+  "operator": "gav | aya", "machine": "<GPU model>",
   "status": "ok | tool_error | parse_error | timeout | leak",
   "rating_raw": "BUY", "position": 1,
   "max_prompt_tokens": 6120, "total_tokens": 31500, "runtime_s": 214,
