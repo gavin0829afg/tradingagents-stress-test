@@ -166,5 +166,6 @@ Human-facing version with diagrams: `CONTRIBUTING.md` §4.（给人看的完整�
    （AI 不点 Approve，也不自行合并；只有 PR 作者明确让你合并某个 PR 时才能合并。）
 8. **Label AI comments:** start PR comments with `**Claude review (via Gav)**` or `**Codex (Aya)**` etc.
 9. **If you cannot push or run `gh`** (sandbox / network), stop after the local commit and write "not pushed" in your report with the exact commands the human should run.
-10. **Keep the README Status current.** The PR that finishes a task also updates the `📍 Status` section of `README.md`（完成任务的 PR 要同时更新 README 的进度表）.
+10. **Don't redo finished work; record yours.** Before starting, check `README.md` Status, `WORKLOG.md`, and open Issues — if a task is already done or claimed by the other owner, stop and say so. The PR that finishes a task updates the README `📍 Status` and appends one row to `WORKLOG.md` (date, owner, what, link).
+   （开工前先看进度、工作记录和 Issue，别人做过或认领了的不要重做；完成任务的 PR 要更新 README 进度表并在 WORKLOG 加一行。）
 11. **If `main` moved and your PR conflicts**, update your branch with `git merge origin/main` (not rebase after review started) and report what conflicted.

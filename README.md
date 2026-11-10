@@ -20,7 +20,10 @@ We take the open-source [TradingAgents](https://github.com/TauricResearch/Tradin
 | **Doing a task** | [`INSTRUCTIONS.md`](INSTRUCTIONS.md) — 每一步怎么做、做到什么程度算完成 |
 | **Wanting the why** | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) — 研究动机、文献背景 |
 
+| **Wanting to know who did what** | [`WORKLOG.md`](WORKLOG.md) — 按时间记录 Gav 和 Aya 各自完成了什么 |
+
 **Your next task** is an open GitHub Issue assigned to you（分配给你的 Issue 就是你的下一个任务）.
+**We work on one shared project — whatever one of us has finished, the other doesn't redo.**（同一个项目，一个人做完的事另一个人不用再做；开工前先看 Status 和 WORKLOG。）
 
 ---
 
@@ -50,7 +53,7 @@ Every commit, branch, and PR is tagged with whose task it is: `[Gav]` / `[Aya]`,
 
 ## 📍 Status（当前进度）
 
-> **Update this section in the PR that finishes a task.**（完成任务的 PR 顺手更新这里。）
+> **Update this section in the PR that finishes a task**, and add a row to [`WORKLOG.md`](WORKLOG.md).（完成任务的 PR 顺手更新这里，并在 WORKLOG 加一行。）
 
 **Week 1 of 6 — setup & pilot**（第一周：环境搭建与试跑）
 
@@ -58,7 +61,7 @@ Every commit, branch, and PR is tagged with whose task it is: `[Gav]` / `[Aya]`,
 |---|---|
 | Plan, rules, and docs | **Pilot script** (`src/pilot.py`, isolated memory per run, seed via Modelfile) — Gav |
 | Repo skeleton, Python 3.12 venv, pinned deps | **5 pilot runs** + fill go/no-go table (`INSTRUCTIONS.md` §4.6) — Gav |
-| Ollama + `llama3.1-8k` (8K context verified, 100% GPU) on Gav's machine | **Aya's environment setup** (`INSTRUCTIONS.md` §4.2–4.3) — Aya |
+| Ollama + `llama3.1-8k` (8K context verified, 100% GPU) on Gav's machine | **Aya's setup**: clone + venv + git identity (Ollama only if Aya will run experiments — see `CONTRIBUTING.md` §5) — Aya |
 | TradingAgents pinned at v0.7.1 + source audit | **Masking spec** written into `INSTRUCTIONS.md` §5.2 (needed before Week 2) |
 | Rule 6a: isolate agent memory per run (found a leak risk) | |
 
