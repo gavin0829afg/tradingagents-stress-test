@@ -201,21 +201,114 @@ print(decision)
 
 ### 5.2 Masking design ⚠️（遮蔽设计，Exp 1 的关键）
 
-**Goal:** the agent cannot tell which company or which date it is looking at, but receives the same information otherwise.
-（目标：让模型认不出是哪家公司、哪个日期，但其他信息不变。）
+> **Status: spec v1, 2026-11-09.** 这是 `src/masking.py` 的正式规格。实现与本节不一致时，以本节为准；需要改规格的，先改这里并写进 Decision Log。
 
-| Item | Normal | Masked |
+**Goal:** in the masked variant the agent cannot tell **which company** or **which real date** it is looking at. The masked variant is *not* "normal minus identity": it also removes absolute price levels and dollar amounts. We claim only that **the normal → masked change is identical in 2023 and 2025**, so it cancels in the difference-in-differences (§6, Exp 1).
+（遮蔽组的目标是让模型认不出公司和真实日期。遮蔽组并不等于"正常组去掉身份"，它还去掉了绝对价格和金额。我们只声称"正常→遮蔽"的变化在 2023 和 2025 两年完全相同，因此会在 DiD 中抵消。）
+
+**Normal variant = unmodified upstream TradingAgents** (same config, isolated memory, leak check). Only the masked variant goes through the masking layer.
+
+#### Design principles（设计原则）
+
+1. **Construct, don't scrub.** Masked tool outputs are **rebuilt from numbers** into our own fixed table format. We never take upstream text and try to regex out names — text can always hide a clue.
+   （遮蔽输出由数字重新生成，不在上游文本上做替换。）
+2. **Fail closed.** Any field, indicator, or date format the masking layer does not recognize raises an error → run `status = "leak"`. Nothing unknown is passed through.
+   （遇到不认识的字段、指标或日期格式，一律报错，不放行。）
+3. **One mapping per run, fixed for all tool calls.** All anchors (date shift, price anchor, volume anchor) are computed once per run, so every tool call in that run is mutually consistent.
+4. **Real values stay inside the wrapper.** The agent sees `STOCK_A` and synthetic dates; the wrapper translates tool arguments back to real ticker/dates, fetches real point-in-time data, runs `leak_check`, then masks.
+
+#### M1. Identity（身份）
+
+| Item | Masked value |
+|---|---|
+| Ticker (everywhere the agent sees it) | `STOCK_A` (one stock per run, so always `STOCK_A`) |
+| `company_of_interest` / initial human message | `STOCK_A` |
+| `instrument_context` | Fixed string for all four banks: `"STOCK_A: a large-cap US bank holding company listed on a US exchange."` |
+
+Interception points (v0.7.1): `TradingAgentsGraph.resolve_instrument_context` (identity string), the `propagate()` inputs, and the analyst tools in `tradingagents/agents/tools.py`. Tool calls with ticker `STOCK_A` are mapped to the real ticker inside the wrapper; any other ticker in a tool call → error.
+
+#### M2. Dates（日期）
+
+**Shift every date forward by exactly 56 calendar years**（所有日期整体往后平移 56 年）:
+\(d_{\text{syn}} = d_{\text{real}} + 56\ \text{years}\)
+
+- Why 56: the Gregorian calendar repeats exactly every 28 years between 1901 and 2099, so +56 years keeps **month, day, weekday, and leap days identical** (2023-03-10 Fri → 2079-03-10 Fri; 2024-02-29 → 2080-02-29). Trading-day gaps, quarter boundaries, and earnings seasons stay exactly in place.
+  （1901–2099 年间公历每 28 年完全重复，平移 56 年后月、日、星期几、闰日都不变，交易日间隔和季度边界保持原样。）
+- In-sample 2023 → **2079**; out-of-sample 2025 → **2081**. The agent has no way to map these back.
+- Applies to: the decision date (`trade_date`), every date in tool outputs, statement period ends, and filing dates. Tool-call date arguments are shifted back by −56 years before fetching.
+- Date formats in outputs are produced by our own formatter (`YYYY-MM-DD` only). Quarter labels are written as period-end dates, never "Q1 2023" or "FY2023".
+- 可能的副作用：模型看到 2079 年可能觉得"这是未来"而拒答或改变行为。这在 2023 和 2025 的遮蔽组中完全相同，会被 DiD 抵消；但失败率要单独报告（§5 末尾的遮蔽试跑会先检查）。
+
+#### M3. Prices（价格）
+
+- **Anchor:** \(P_0\) = adjusted close on the **last trading day ≤ decision date**. Scale \(s = 100 / P_0\), fixed for the run.
+- Every price-unit field (open, high, low, close, adjusted close) is multiplied by \(s\): \(P'_t = s \cdot P_t\). The decision-date close is therefore exactly 100.
+- Rounded to 4 significant decimals. Dividends and splits: use upstream's adjusted series; raw dividend amounts are not shown.
+- 用决策日收盘价作为基准不会泄漏：决策日当天收盘价本来就是 agent 可以看到的数据。
+
+#### M4. Technical indicators（技术指标）
+
+Each upstream indicator is assigned to exactly one class in `configs/masking.yaml`:
+
+| Class | Transform | Examples (verify names in v0.7.1 source) |
 |---|---|---|
-| Ticker / company name | `JPM`, "JPMorgan Chase" | `STOCK_A`, "a large US bank" |
-| Dates | Real dates | Relative labels or a fixed synthetic offset |
-| Prices | Raw | Rebased to 100 at window start |
-| Volume | Raw | Normalized by trailing average |
-| Fundamentals | Absolute $ values | Ratios & growth rates only (ROE, ROA, EPS growth, ...) |
+| Price-unit | × \(s\) | SMA / EMA of close, Bollinger middle / upper / lower, VWMA, ATR, MACD, MACD signal, MACD histogram |
+| Unitless | unchanged | RSI, MFI, CCI, Williams %R |
+| Volume-unit | ÷ \(\bar V_{50}\) (see M5) | OBV-type indicators |
 
-实现思路：
-- Wrapper 内部保存 `alias → real ticker` 和 `synthetic date → real date` 的映射；工具用真实值取数，再把输出遮蔽后交给 agent。
-- 遮蔽后用正则扫描所有 tool 输出，确认没有残留的真实名称、ticker 或年份。
-- **为什么需要 2025 年的 masked 组：** 遮蔽本身也会去掉合理信息（比如"JPM 是一家稳健的大银行"），所以即使没有记忆效应，masked 也可能比 normal 差。2025 年的 normal − masked 差距就是这部分"正常损失"的对照。
+An indicator that is not in the yaml → error (fail closed). Codex lists every indicator the v0.7.1 market analyst can request and proposes its class; Claude reviews the list before it is merged.
+（指标必须逐个归类，漏掉的会让均线和价格对不上、或者能反推真实价格。）
+
+#### M5. Volume（成交量）
+
+- \(\bar V_{50}\) = mean daily volume over the 50 trading days ending on the decision date, fixed for the run.
+- Show **relative volume** \(V'_t = V_t / \bar V_{50}\), rounded to 3 decimals, labelled `rel_volume`.
+
+#### M6. Fundamentals（基本面）
+
+Masked fundamentals are a single table built from upstream's point-in-time SEC statements (filing date ≤ decision date), **last 8 quarters**, one row per quarter:
+
+| Column | Definition |
+|---|---|
+| `period_end` | synthetic date (M2) |
+| `filed` | synthetic filing date (M2) |
+| `roe_ttm` | trailing-4Q net income / average shareholders' equity |
+| `roa_ttm` | trailing-4Q net income / average total assets |
+| `net_income_yoy` | net income vs same quarter one year earlier |
+| `eps_diluted_yoy` | diluted EPS vs same quarter one year earlier |
+| `revenue_yoy` | total revenue as reported by upstream vs same quarter one year earlier |
+| `equity_to_assets` | shareholders' equity / total assets |
+
+- Ratios as decimals rounded to 4 places; missing inputs → `NA` (never imputed).
+- **Removed entirely:** all absolute dollar amounts, share counts, and **every text field** (segment names such as "Corporate & Investment Bank" identify a bank on their own; also auditor, address, filer name, form type).
+（所有金额、股数和文字字段一律去掉，只留比率。）
+
+#### M7. Residual leak scan（残留检查）
+
+After every masked run, scan **all agent-visible text**: every tool output and every message in the saved `final_state`.
+
+- **Our leaks**（我们的遮蔽漏了）— patterns from `configs/masking_denylist.yaml`: the four real tickers; company names and short names (JPMorgan, Chase, Bank of America, BofA, Wells Fargo, Citigroup, Citi, Citibank, …); known segment names; CEO names; any 4-digit year 2000–2030. Hit in a **tool output** → run `status = "leak"`, excluded from main results, counted and reported.
+- **Identity guesses**（模型自己猜出了身份）— a denylist hit that appears only in the **model's own messages** is not our leak: the model named the company itself. Record `identity_guess = true` with the matched term. The identity-guess rate (2023 vs 2025) is reported as a secondary memorization signal for RQ1.
+
+#### M8. Audit trail（审计记录）
+
+Each masked run writes `results/raw/<exp>/<run_id>/mask.json` (never shown to the agent): real ticker, alias, date shift (+56 y), \(P_0\), \(s\), \(\bar V_{50}\), and the masking spec version (`v1`). This lets anyone reproduce or undo the mapping.
+
+#### M9. Required tests（必须有的测试，补充 `AGENTS.md` §5）
+
+- Alias ↔ real ticker and synthetic ↔ real date round-trip exactly; synthetic date has the same weekday as the real date.
+- Decision-date close maps to exactly 100; a price-unit indicator and the close it is computed from stay consistent after scaling.
+- Unknown indicator / field / date format → error (fail closed).
+- Masked outputs for two different real banks have identical structure (same columns, same labels).
+- Denylist scan catches each pattern class; a hit in the model's message is classified as `identity_guess`, a hit in a tool output as `leak`.
+
+#### M10. Masked smoke test before Week 3（第三周之前的遮蔽试跑）
+
+Before any grid run: 2 masked runs (one 2023, one 2025, same stock), inspected by hand together with their `mask.json` and scan results. Check the failure rate and whether the model refuses or misbehaves because of 2079/2081 dates. Record the outcome in the Decision Log.
+
+#### Optional robustness check（可选稳健性检查）
+
+If budget allows: a third variant **normal-rebased** = real identity and real dates, but prices / volume / fundamentals transformed exactly as in M3–M6. Comparing normal-rebased vs masked isolates the pure identity effect without the information-loss part. Run on a subset only; decide after the Week 1 timing.
 
 ### 5.3 Run log schema（每次运行记录的字段）
 
@@ -406,5 +499,6 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 2026-11-06 | Per-run isolated memory_log_path; project-local data_cache_dir | 默认共用的记忆文件会造成时间泄漏和遮蔽失效 |
 | 2026-11-06 | Pin TradingAgents **v0.7.1** (commit `c4544913a14e`), not v0.7.0 | v0.7.1 修复了前视泄漏：未补零的日期（如 `2024-7-5`）会让 EDGAR 返回决策日之后的财报 (#1488)；还修复了财报季度错位 (#1517) 和按未收盘 K 线计分 (#1548) |
 | 2026-11-06 | Agent model built: `llama3.1-8k`, verified 8K context on `/v1`, 100% GPU | 7,025-token 测试 prompt 未被截断 |
+| 2026-11-09 | Masking spec v1 (§5.2): dates +56 years; prices rebased to decision-date close = 100; indicators classified in `configs/masking.yaml`; fundamentals ratio-only, no text; outputs rebuilt not scrubbed; fail closed; model-named identity recorded as `identity_guess` | +56 年保持月/日/星期完全不变；按运行固定的基准保证各次工具调用一致；"重建而非替换"和"不认识就报错"避免漏遮；模型自己说出公司名本身就是记忆证据 |
 | 2026-11-09 | Docs consolidated: one topic per file; PROJECT_SUMMARY trimmed to background | 避免重复内容互相矛盾；旧版计划仍在 git 历史中 |
 | | *(Week 1 results go here)* | |
