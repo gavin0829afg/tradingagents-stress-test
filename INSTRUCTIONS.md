@@ -1,6 +1,7 @@
 # TradingAgents Stress Test — Instructions（项目执行手册）
 
-> 本文件是项目的**执行手册**：每一步做什么、怎么做、做到什么程度算完成。研究动机、文献和背景见 `PROJECT_SUMMARY.md`。
+> 本文件是项目的**执行手册和实验设计的唯一版本**：每一步做什么、怎么做、做到什么程度算完成。
+> 其他内容各在一处：规则 → `AGENTS.md`；协作与 PR → `CONTRIBUTING.md`；进度和目录 → `README.md`；谁做了什么 → `WORKLOG.md`；背景与文献 → `PROJECT_SUMMARY.md`。
 >
 > **写法约定：** 流程说明用中文；项目内容（研究问题、实验设计、指标、配置）以英文为主、中文为辅。
 >
@@ -12,7 +13,7 @@
 
 - 按周推进。每周开始前先看该周的**目标**和**完成标准**，结束时逐项打勾。
 - 和原计划不一样的决定，一律写进 §11 Decision Log（日期 + 决定 + 原因），不要只记在脑子里。
-- 标 **⚠️** 的条目是相对 `PROJECT_SUMMARY.md` 的修订，原因汇总在 §12。
+- 标 **⚠️** 的条目是相对第一版计划的修订，原因见 §11 Decision Log。
 - 标 **🔍** 的条目涉及 TradingAgents 的具体接口（类名、参数名、配置键）。这里写的是常见写法，**以你 pin 住的版本源码为准**，第一次用时请打开源码核对。
 - 命令默认在 Windows PowerShell 中运行。
 
@@ -44,7 +45,7 @@
 | Debate rounds | 1 (bull/bear), 1 (risk) | 控制 prompt 长度和耗时 |
 | Decision frequency | Weekly, last trading day of each week | 每周最后一个交易日做决策 |
 | Entry / holding | Enter at next close, hold 5 trading days | 下一个收盘价进场，持有 5 个交易日 |
-| Universe | **Plan B default:** `JPM`, `BAC`, `WFC`, `C` ⚠️ | 加拿大银行作为可选（理由见 §12） |
+| Universe | **Plan B default:** `JPM`, `BAC`, `WFC`, `C` ⚠️ | 加拿大银行作为可选（理由见 §11） |
 | Benchmark | `SPY` + buy-and-hold of each stock | 可选补充：银行业 ETF `KBE` |
 | In-sample period | 2023-01-01 → 2023-06-30 | 模型训练数据覆盖的时期 |
 | Out-of-sample period | 2025-01-01 → 2025-06-30 | 模型知识截止之后，同一组日历月 |
@@ -53,46 +54,11 @@
 
 ## 2. Ground rules（全程规则）
 
-1. **Pin everything.** TradingAgents commit hash, Ollama version, model digest → `results/RUN_INFO.md`. 项目中途不升级。
-2. **Log every run, including failures.** 失败、超时、输出无法解析的运行都要记录，不能悄悄重跑覆盖。
-3. **Point-in-time only.** 每条输入数据的时间戳必须 ≤ decision date。财报数据看 **filing date（提交日期）**，不是 period end（报告期末）。
-4. **Pre-register before OOS.** 在看到 2025 结果之前，把实验网格、指标、显著性标准写进 Decision Log 并 commit。之后不再改。
-5. **No cherry-picking.** 所有配置、所有种子的结果都进最终表格。
-6. **Never commit** `.env`, API keys, Bloomberg data, or large raw logs.（大文件放 `results/raw/` 并 gitignore。）
-7. **Findings, not advice.** 结论写成 "edge disappears out-of-sample after costs" 这种研究发现，不写交易建议。
-
----
+规则只写在一处：**`AGENTS.md` §3**（研究诚信与仓库规范，人和 AI 都要遵守）。
 
 ## 3. Repo layout（仓库结构）
 
-```
-tradingagents-stress-test/
-├── PROJECT_SUMMARY.md        # background & motivation（背景与动机）
-├── INSTRUCTIONS.md           # this file（本执行手册）
-├── README.md                 # public summary + results（对外展示）
-├── .env.example              # key template; never commit .env
-├── .gitignore                # .env, .venv/, external/, results/raw/
-├── external/
-│   └── TradingAgents/        # pinned clone, gitignored（锁定版本的上游代码）
-├── configs/
-│   ├── Modelfile             # llama3.1-8k definition
-│   └── *.yaml                # experiment grids（每个实验一个 yaml）
-├── src/
-│   ├── run_grid.py           # resumable grid runner（可断点续跑）
-│   ├── masking.py            # ⚠️ ticker / date / price masking layer
-│   ├── costs.py              # commission + spread model
-│   ├── stats.py              # Sharpe SE, block bootstrap, DiD
-│   ├── baselines.py          # buy-and-hold, random, SMA rule
-│   ├── earnings_events.py    # 8-K Item 2.02 dates + yfinance cross-check
-│   ├── leak_check.py         # timestamp <= decision date checks
-│   └── nodes/                # my own LangGraph node(s)
-├── results/
-│   ├── RUN_INFO.md           # versions & settings
-│   ├── raw/runs.jsonl        # one line per run (gitignored if large)
-│   └── tables/               # final CSV / markdown tables
-├── notebooks/                # analysis + charts
-└── writeup/                  # final report
-```
+目录说明只写在一处：**`README.md` → Repo map**。`src/` 各模块的职责见本文件 §5.1。
 
 ---
 
@@ -430,24 +396,15 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 2026-11-05 | Local model, 8 GB VRAM, `num_ctx` 8K; analysts = market + fundamentals | 免费；news/social 无法回测 |
 | 2026-11-06 | Added Exp 4 (earnings event lens) as side experiment tied to RQ1 | 财报窗口是记忆效应最强的地方 |
 | 2026-11-06 | Exp 1 → 2×2 normal/masked design (DiD) | 区分记忆效应与市场环境变化 |
-| 2026-11-06 | Plan B (US banks) as default universe | 加拿大银行季报为 6-K，通常无 XBRL |
+| 2026-11-06 | Plan B (US banks `JPM`, `BAC`, `WFC`, `C`) as default universe | 加拿大五大行是外国私人发行人：年报为 40-F，季报为 6-K（通常无 XBRL 财务数据），也不提交 8-K Item 2.02 |
+| 2026-11-06 | Bootstrap **by week**, not by decision | 同周的银行股高度相关，有效样本量接近周数而不是决策数 |
+| 2026-11-06 | Compare hit rate to the **always-BUY base rate** | 上涨行情中"永远买入"本身就有 > 50% 的 hit rate |
+| 2026-11-06 | Failed runs logged with their own status, never as HOLD | 失败变成 HOLD 会压低 hit rate；如果 2025 更容易失败，会制造假的记忆差距 |
+| 2026-11-06 | Exp 4 adds matched non-earnings controls (→ 256 runs) | 第一版计划的 160 次没有包含对照组 |
+| 2026-11-06 | Pre-register grid & metrics before any OOS run | 防止看到结果后再调整指标 |
 | 2026-11-06 | Temperature 0.7, seeds vary | temperature=0 下 seed 几乎无效 |
 | 2026-11-06 | Per-run isolated memory_log_path; project-local data_cache_dir | 默认共用的记忆文件会造成时间泄漏和遮蔽失效 |
 | 2026-11-06 | Pin TradingAgents **v0.7.1** (commit `c4544913a14e`), not v0.7.0 | v0.7.1 修复了前视泄漏：未补零的日期（如 `2024-7-5`）会让 EDGAR 返回决策日之后的财报 (#1488)；还修复了财报季度错位 (#1517) 和按未收盘 K 线计分 (#1548) |
 | 2026-11-06 | Agent model built: `llama3.1-8k`, verified 8K context on `/v1`, 100% GPU | 7,025-token 测试 prompt 未被截断 |
+| 2026-11-09 | Docs consolidated: one topic per file; PROJECT_SUMMARY trimmed to background | 避免重复内容互相矛盾；旧版计划仍在 git 历史中 |
 | | *(Week 1 results go here)* | |
-
----
-
-## 12. Changes vs `PROJECT_SUMMARY.md`（相对原计划的修订）
-
-| # | Change | 原因 |
-|---|---|---|
-| 1 | Exp 1 adds a **masked** variant; main metric is DiD | 只比较 2023 vs 2025 时，记忆效应和市场环境差异混在一起，无法区分 |
-| 2 | Default universe → **US banks** (`JPM`, `BAC`, `WFC`, `C`) | 加拿大五大行是外国私人发行人：年报为 40-F，季报为 6-K（通常无 XBRL 财务数据），也不提交 8-K Item 2.02 |
-| 3 | Temperature fixed at **0.7** | temperature=0 时不同 seed 的输出几乎一样 |
-| 4 | Bootstrap **by week**, not by decision | 同周的银行股高度相关，有效样本量接近周数而不是决策数 |
-| 5 | Compare hit rate to **always-BUY base rate** | 上涨行情中"永远买入"本身就有 > 50% 的 hit rate |
-| 6 | Failed runs logged as their own status | 失败默认变成 HOLD 会压低 hit rate；如果 2025 更容易失败，会制造假的记忆差距 |
-| 7 | Exp 4 adds matched controls (160 → 256 runs incl. seeds/stocks change) | 原计数没有包含非财报对照组 |
-| 8 | Pre-registration before OOS runs | 防止看到结果后再调整指标 |

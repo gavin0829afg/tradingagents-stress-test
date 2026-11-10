@@ -72,9 +72,12 @@ Key decisions so far: `INSTRUCTIONS.md` §11 Decision Log.
 ## Repo map（目录）
 
 ```
-AGENTS.md / CLAUDE.md     rules for AI agents
-CONTRIBUTING.md           rules for the two of us
-INSTRUCTIONS.md           step-by-step plan, experiment design, decision log
+README.md                 start here: purpose, status, this map
+AGENTS.md / CLAUDE.md     rules (research integrity, code, AI limits) — Claude reads AGENTS via CLAUDE.md
+CONTRIBUTING.md           how Gav & Aya commit, branch, open PRs, split work
+INSTRUCTIONS.md           experiment design, weekly steps, decision log (single source)
+WORKLOG.md                who did what, when
+PROJECT_SUMMARY.md        background only: motivation, references, learning resources
 configs/                  Ollama Modelfile, experiment grids (yaml)
 src/                      our code (masking, costs, stats, leak checks, runner)
 external/TradingAgents/   pinned upstream clone (gitignored — install per INSTRUCTIONS §4.3)
