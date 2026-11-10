@@ -1,6 +1,8 @@
 # AGENTS.md — Guide for Coding Agents（给 Codex 的协作说明）
 
-> 本文件写给在本仓库里工作的 AI 编程助手（Codex 等）。开始任何任务前请先读完本文件，再读 `INSTRUCTIONS.md`（执行手册）和 `PROJECT_SUMMARY.md`（背景）。
+> 本文件写给在本仓库里工作的 AI 编程助手（Codex 等）。读取顺序：**本文件 → `README.md` 的 Status（当前进度）→ 分配给你 owner 的 GitHub Issue（当前任务）→ `INSTRUCTIONS.md` 中与任务相关的章节**。第一次提交前读一遍 `CONTRIBUTING.md` §2–§5（提交与 PR 流程）。`PROJECT_SUMMARY.md` 只有背景，一般不需要读。
+>
+> 每类内容只写在一个文件里：规则 → 本文件；实验设计与步骤 → `INSTRUCTIONS.md`；协作与 PR → `CONTRIBUTING.md`；进度与目录 → `README.md`；谁做了什么 → `WORKLOG.md`。发现两处内容矛盾时，以这里列出的那个文件为准，并在汇报里指出。
 >
 > **写法约定：** 流程和说明用中文；项目内容（模块、规则、指标）以英文为主、中文为辅。
 
@@ -26,7 +28,7 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
 | Role | Who | 负责内容 |
 |---|---|---|
 | Design & review | Claude (Opus 5.5) | 实验设计、masking / 统计方案、代码审查、排错 |
-| Implementation | **Codex (you)** | 按 spec 实现模块、写测试、修 bug |
+| Implementation | **Codex (you)** — Gav and Aya each run their own Codex | 按 spec 实现模块、写测试、修 bug、开 PR |
 | Owners | Gav & Aya | 决定设计、批准改动、运行长时间实验；预注册设定的修改需要两人都同意 |
 
 协作规则：
@@ -48,16 +50,18 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
    （运行日志只追加，不覆盖、不删除。）
 4. **Do not change pre-registered settings** (grid, metrics, thresholds, cost assumptions, fixed settings in `INSTRUCTIONS.md` §1.1) without explicit agreement from both owners (Gav and Aya), recorded in the Decision Log.
    （预注册的设定不能自行修改。）
-5. **No tuning on out-of-sample data.** Do not adjust prompts, parameters, or parsing rules based on 2025 results.
-   （不能根据 2025 年的结果调整任何东西。）
+5. **No tuning on out-of-sample data.** Do not adjust prompts, parameters, or parsing rules based on 2025 results. Grid and metrics are pre-registered in the Decision Log before any OOS run.
+   （不能根据 2025 年的结果调整任何东西；跑样本外之前先把网格和指标写进 Decision Log。）
+5a. **No cherry-picking; findings, not advice.** Every config and seed goes into the final tables. Results are written as research findings ("edge disappears out-of-sample after costs"), never as trading advice.
+   （所有配置和种子的结果都要报告；结论写成研究发现，不写交易建议。）
 6. **Model cutoff rule.** Do not suggest swapping the agent model for a newer API model (GPT, Claude, Gemini, etc.) for performance evaluation — their training data covers 2023 and 2025, which contaminates the test.
    （不要建议换成更新的 API 模型来评估收益，它们见过测试时期的数据。）
 6a. **Isolate agent memory per run.** TradingAgents keeps a persistent lesson log (`memory_log_path`, default `~/.tradingagents/memory/trading_memory.md`) shared by all runs. Every run must use its own fresh, empty memory file under `results/raw/<exp>/<run_id>/`. Shared memory leaks future outcomes into earlier dates, leaks real identities into masked runs, and couples seeds. `data_cache_dir` must point inside the project (`results/raw/cache/`) so cached data can be audited.
    （每次运行必须使用独立的空记忆文件：共用记忆会把未来结果泄漏给更早的日期、把真实身份泄漏给遮蔽组，并让不同种子互相影响。数据缓存放在项目目录内，便于审查。）
 
 ### Repo hygiene（仓库规范）
-7. **Do not modify `external/TradingAgents/`.** It is pinned. Change behavior via wrappers, config, or monkeypatching in `src/`, and document each patch.
-   （上游代码已锁定版本，只能在 `src/` 里包装，不能直接改。）
+7. **Pin everything; do not modify `external/TradingAgents/`.** TradingAgents commit, Ollama version, and model digest are recorded in `results/RUN_INFO.md` and not upgraded mid-project. Change upstream behavior only via wrappers, config, or monkeypatching in `src/`, and document each patch.
+   （版本全部锁定并记录在 RUN_INFO，中途不升级；上游代码只能在 `src/` 里包装，不能直接改。）
 8. **Never commit** `.env`, API keys, tokens, Bloomberg data, or large raw logs. Never print secrets in logs.
 9. **Never start long runs** (anything beyond a tiny smoke test, roughly > 5 LLM calls) without the owner's go-ahead. Local GPUs are small and runs are slow.
    （不要擅自启动长时间实验。）
@@ -105,8 +109,7 @@ Key formulas & definitions: `INSTRUCTIONS.md` §5.3 (log schema, rating mapping)
 - Use `logging`, not `print`, in `src/`.
 - Tests in `tests/`, run with `pytest`. Tests must not call Ollama or the network — mock or use fixtures.
 - Dates as ISO strings `YYYY-MM-DD` or `datetime.date`; never naive timestamps mixed with dates.
-- Small commits, one topic each. Commit message format: `[Gav] <module>: <what changed>` or `[Aya] ...` — the tag is the owner who started the task, even when an AI wrote the code. Add an `AI-assisted: Codex` trailer line. Branches: `gav/<topic>` or `aya/<topic>`. Never push directly to `main`; open a PR. Full rules: `CONTRIBUTING.md`.
-  （commit 前缀写发起任务的人，AI 写的代码也一样；末尾加 AI-assisted 说明；分支用 gav/ 或 aya/ 开头；不直接推 main，走 PR。）
+- Small commits, one topic each. Commit / branch / PR naming: see §9.
 
 ---
 
@@ -148,3 +151,23 @@ Key formulas & definitions: `INSTRUCTIONS.md` §5.3 (log schema, rating mapping)
 ```
 
 不要声称"已测试"或"已验证"而实际没有运行；没跑的就写没跑。
+
+---
+
+## 9. Git & PR workflow for agents（AI 的分支与 PR 流程）
+
+**The workflow itself — naming, steps, PR format — is defined once in `CONTRIBUTING.md` §2–§5. Follow it exactly.** In short: branch `<tag>/<topic>` from fresh `main`; commit `[Tag] <module>: <what>` + trailer `AI-assisted: Codex`; PR titled like the commit, body from `.github/pull_request_template.md`.
+（流程只在 CONTRIBUTING.md §2–§5 写一次，照做即可。下面只列 AI 额外要遵守的限制。）
+
+1. **Know whose task it is.** The owner (Gav or Aya) who gave you the task sets the tag. If unsure, ask before committing.
+   （先确认任务属于谁，前缀和分支都跟着这个人走。）
+2. **Read the task from its GitHub Issue** when one exists: `gh issue view <n>`, and put `Closes #<n>` in the PR body.
+3. **Use the repo's git identity;** never pass `-c user.name/user.email`.
+4. **Push only your task branch.** Never push to `main`. Never push to, rebase, or force-push another person's branch. Do not force-push your own branch once review has started — add new commits instead.
+5. **Never approve a PR, and never merge on your own initiative.** A PR is merged after the other owner approves; only merge when the PR's human author explicitly tells you to merge that specific PR.
+   （AI 不点 Approve，也不自行合并；只有 PR 作者明确让你合并某个 PR 时才能合并。）
+6. **Label AI comments:** start PR comments with `**Claude review (via Gav)**` or `**Codex (Aya)**` etc.
+7. **If you cannot push or run `gh`** (sandbox / network), stop after the local commit and write "not pushed" in your report with the exact commands the human should run.
+8. **Don't redo finished work; record yours.** Before starting, check `README.md` Status, `WORKLOG.md`, and open Issues — if a task is already done or claimed by the other owner, stop and say so. The PR that finishes a task updates the README `📍 Status` and appends one row to `WORKLOG.md` (date, owner, what, link).
+   （开工前先看进度、工作记录和 Issue，别人做过或认领了的不要重做；完成任务的 PR 要更新 README 进度表并在 WORKLOG 加一行。）
+9. **If `main` moved and your PR conflicts**, update your branch with `git merge origin/main` (not rebase after review started) and report what conflicted.
