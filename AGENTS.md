@@ -1,6 +1,6 @@
 # AGENTS.md — Guide for Coding Agents（给 Codex 的协作说明）
 
-> 本文件写给在本仓库里工作的 AI 编程助手（Codex 等）。开始任何任务前请先读完本文件，再读 `INSTRUCTIONS.md`（执行手册）和 `PROJECT_SUMMARY.md`（背景）。
+> 本文件写给在本仓库里工作的 AI 编程助手（Codex 等）。开始任何任务前请先读完本文件，再看 `README.md` 的 **Status**（当前进度）和分配给你 owner 的 GitHub Issue（当前任务），然后按需读 `INSTRUCTIONS.md`（执行手册）和 `PROJECT_SUMMARY.md`（背景）。
 >
 > **写法约定：** 流程和说明用中文；项目内容（模块、规则、指标）以英文为主、中文为辅。
 
@@ -26,7 +26,7 @@ This repo stress-tests the open-source **TradingAgents** framework (multi-agent 
 | Role | Who | 负责内容 |
 |---|---|---|
 | Design & review | Claude (Opus 5.5) | 实验设计、masking / 统计方案、代码审查、排错 |
-| Implementation | **Codex (you)** | 按 spec 实现模块、写测试、修 bug |
+| Implementation | **Codex (you)** — Gav and Aya each run their own Codex | 按 spec 实现模块、写测试、修 bug、开 PR |
 | Owners | Gav & Aya | 决定设计、批准改动、运行长时间实验；预注册设定的修改需要两人都同意 |
 
 协作规则：
@@ -148,3 +148,23 @@ Key formulas & definitions: `INSTRUCTIONS.md` §5.3 (log schema, rating mapping)
 ```
 
 不要声称"已测试"或"已验证"而实际没有运行；没跑的就写没跑。
+
+---
+
+## 9. Git & PR workflow for agents（AI 的分支与 PR 流程）
+
+Human-facing version with diagrams: `CONTRIBUTING.md` §4.（给人看的完整流程见 CONTRIBUTING.md §4。）
+
+1. **Know whose task it is.** The owner (Gav or Aya) who gave you the task sets the tag. If unsure, ask before committing.
+   （先确认任务属于谁，前缀和分支都跟着这个人走。）
+2. **Read the task from its GitHub Issue** when one exists: `gh issue view <n>`. Link it in the PR body with `Closes #<n>`.
+3. **Start from fresh `main`:** `git switch main && git pull`, then `git switch -c <tag>/<topic>` (e.g. `aya/masking-spec`).
+4. **Commit** as `[Tag] <module>: <what changed>` with a trailer line `AI-assisted: Codex` (or `Claude`). Use the repo's git identity; never pass `-c user.name/user.email`.
+5. **Push only your task branch.** Never push to `main`. Never push to, rebase, or force-push another person's branch. Do not force-push your own branch once review has started — add new commits instead.
+6. **Open the PR** with the same title as the commit; fill the body from `.github/pull_request_template.md` (it mirrors the §8 report). Use `--draft` if the task is not done.
+7. **Never approve a PR, and never merge on your own initiative.** A PR is merged after the other owner approves; only merge when the PR's human author explicitly tells you to merge that specific PR.
+   （AI 不点 Approve，也不自行合并；只有 PR 作者明确让你合并某个 PR 时才能合并。）
+8. **Label AI comments:** start PR comments with `**Claude review (via Gav)**` or `**Codex (Aya)**` etc.
+9. **If you cannot push or run `gh`** (sandbox / network), stop after the local commit and write "not pushed" in your report with the exact commands the human should run.
+10. **Keep the README Status current.** The PR that finishes a task also updates the `📍 Status` section of `README.md`（完成任务的 PR 要同时更新 README 的进度表）.
+11. **If `main` moved and your PR conflicts**, update your branch with `git merge origin/main` (not rebase after review started) and report what conflicted.
