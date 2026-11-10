@@ -11,7 +11,7 @@
 | Tag | Name | GitHub | 用于 commit / PR | 用于 branch |
 |---|---|---|---|---|
 | `Gav` | Gavin Li | `gavin0829afg` | `[Gav]` | `gav/` |
-| `Aya` | 艾亚 | *(待补充)* | `[Aya]` | `aya/` |
+| `Aya` | 艾亚 | `ayaw888` | `[Aya]` | `aya/` |
 
 ---
 
