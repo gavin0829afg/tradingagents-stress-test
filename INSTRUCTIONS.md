@@ -518,4 +518,5 @@ Week 1 测出单次耗时后，替换下表中的 3 分钟。
 | 2026-11-06 | Agent model built: `llama3.1-8k`, verified 8K context on `/v1`, 100% GPU | 7,025-token 测试 prompt 未被截断 |
 | 2026-11-09 | Masking spec v1 (§5.2): dates +56 years; prices rebased to decision-date close = 100; indicators classified in `configs/masking.yaml`; fundamentals ratio-only, no text; outputs rebuilt not scrubbed; fail closed; model-named identity recorded as `identity_guess` | +56 年保持月/日/星期完全不变；按运行固定的基准保证各次工具调用一致；"重建而非替换"和"不认识就报错"避免漏遮；模型自己说出公司名本身就是记忆证据 |
 | 2026-11-09 | Docs consolidated: one topic per file; PROJECT_SUMMARY trimmed to background | 避免重复内容互相矛盾；旧版计划仍在 git 历史中 |
+| 2026-11-16 | Repo made public under MIT; README rewritten in English for outside readers | 作为作品集展示；实验结果尚未产生，README 中明确标注 pending，不报告任何业绩数字 |
 | | *(Week 1 results go here)* | |
