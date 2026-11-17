@@ -18,3 +18,4 @@
 | 2026-11-09 | Aya | Invited as collaborator (`ayaw888`) | — |
 | 2026-11-09 | Gav (+Claude) | Wrote masking spec v1: +56-year date shift, decision-date price anchor, indicator classes, ratio-only fundamentals, leak vs identity-guess scan | PR #3, `INSTRUCTIONS.md` §5.2 |
 | 2026-11-16 | Gav (+Codex, Claude review) | Pilot runner: `src/pilot.py`, `configs/pilot.yaml`, seed Modelfiles, 9 tests (isolated memory per run, REVIEW → `parse_error`, append-only log) | PR #5, closes #4 |
+| 2026-11-16 | Gav (+Claude) | Prepared the repo for public release: English README (method, findings so far, pending-results table, pipeline diagram), MIT license | PR #6 |
