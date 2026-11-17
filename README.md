@@ -62,8 +62,9 @@ Every commit, branch, and PR is tagged with whose task it is: `[Gav]` / `[Aya]`,
 | Plan, rules, and docs | **Pilot script** (`src/pilot.py`, isolated memory per run, seed via Modelfile) — Gav |
 | Repo skeleton, Python 3.12 venv, pinned deps | **5 pilot runs** + fill go/no-go table (`INSTRUCTIONS.md` §4.6) — Gav |
 | Ollama + `llama3.1-8k` (8K context verified, 100% GPU) on Gav's machine | **Aya's setup**: clone + venv + git identity (Ollama only if Aya will run experiments — see `CONTRIBUTING.md` §5) — Aya |
-| TradingAgents pinned at v0.7.1 + source audit | **Masking spec** written into `INSTRUCTIONS.md` §5.2 (needed before Week 2) |
-| Rule 6a: isolate agent memory per run (found a leak risk) | |
+| TradingAgents pinned at v0.7.1 + source audit | **Review masking spec v1** (`INSTRUCTIONS.md` §5.2) — Aya |
+| Rule 6a: isolate agent memory per run (found a leak risk) | *Week 2:* implement `src/masking.py` per §5.2 (incl. indicator list in `configs/masking.yaml`) |
+| Masking spec v1 written (`INSTRUCTIONS.md` §5.2) — awaiting Aya's review | |
 
 Key decisions so far: `INSTRUCTIONS.md` §11 Decision Log.
 
