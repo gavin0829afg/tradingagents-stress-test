@@ -17,3 +17,4 @@
 | 2026-11-09 | Gav (+Claude) | Made the repo self-explanatory: README start page, AI PR workflow, PR template, this worklog; consolidated docs (one topic per file, PROJECT_SUMMARY → background only) | PR #2 |
 | 2026-11-09 | Aya | Invited as collaborator (`ayaw888`) | — |
 | 2026-11-09 | Gav (+Claude) | Wrote masking spec v1: +56-year date shift, decision-date price anchor, indicator classes, ratio-only fundamentals, leak vs identity-guess scan | PR #3, `INSTRUCTIONS.md` §5.2 |
+| 2026-11-16 | Gav (+Codex, Claude review) | Pilot runner: `src/pilot.py`, `configs/pilot.yaml`, seed Modelfiles, 9 tests (isolated memory per run, REVIEW → `parse_error`, append-only log) | PR #5, closes #4 |

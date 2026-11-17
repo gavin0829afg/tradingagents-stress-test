@@ -1,0 +1,45 @@
+experiment: pilot
+settings:
+  llm_provider: ollama
+  backend_url: http://localhost:11434/v1
+  temperature: 0.7
+  num_ctx: 8192
+  selected_analysts:
+    - market
+    - fundamentals
+  max_debate_rounds: 1
+  max_risk_discuss_rounds: 1
+  variant: normal
+  config: full
+runs:
+  - case_id: jpm-2023-03-10
+    ticker: JPM
+    decision_date: "2023-03-10"
+    period: IS
+    seed: 1
+  - case_id: jpm-2025-03-07
+    ticker: JPM
+    decision_date: "2025-03-07"
+    period: OOS
+    seed: 1
+  - case_id: ry-2023-03-10
+    ticker: RY
+    decision_date: "2023-03-10"
+    period: IS
+    seed: 1
+  - case_id: bac-2023-05-05
+    ticker: BAC
+    decision_date: "2023-05-05"
+    period: IS
+    seed: 1
+  - case_id: wfc-2025-05-02
+    ticker: WFC
+    decision_date: "2025-05-02"
+    period: OOS
+    seed: 1
+  - case_id: jpm-2023-03-10-repeat
+    ticker: JPM
+    decision_date: "2023-03-10"
+    period: IS
+    seed: 1
+    replicate_of: jpm-2023-03-10

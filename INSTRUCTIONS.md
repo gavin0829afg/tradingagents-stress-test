@@ -96,6 +96,13 @@ ollama ps
 - **检查 GPU：** `ollama ps` 的 PROCESSOR 列应显示 `100% GPU`。如果显示 CPU/GPU 混合，说明显存不够，速度会大幅下降。
 - 记录 `ollama --version` 和 `ollama list` 里的模型 digest → `RUN_INFO.md`。
 
+**Seed models（每个 seed 一个模型）：** v0.7.1 不支持传 seed，所以把 seed 写进 Modelfile。实验中 seed *k* 用模型 `llama3.1-8k-s{k}`：
+
+```powershell
+ollama create llama3.1-8k-s1 -f configs/Modelfile.s1
+ollama create llama3.1-8k-s2 -f configs/Modelfile.s2
+```
+
 ### 4.3 Install TradingAgents, pinned（安装并锁定版本）
 
 ```powershell
@@ -161,6 +168,16 @@ print(decision)
 - **Final rating** and whether it parsed cleanly（最终评级能否被正确解析）
 
 然后用相同 seed + temperature 把 #1 再跑一次，检查结果是否一致（determinism check）。
+
+**How to run（运行方法）:** the 6 runs above (5 + repeat of #1) are defined in `configs/pilot.yaml` and run by `src/pilot.py`:
+
+```powershell
+python -m src.pilot --config configs/pilot.yaml --operator gav
+```
+
+- Each run gets a fresh memory file and output folder under `results/raw/pilot/<run_id>/`（含 `final_state.json`）；data cache in `results/raw/cache/`.
+- One row per run is appended to `results/raw/pilot.jsonl`: status (`ok` / `parse_error` for `REVIEW` / `tool_error` / `timeout`), rating, position, runtime, per-call prompt tokens.
+- 运行前确认 Ollama 在运行，且已建好 `llama3.1-8k-s1`。
 
 ### 4.5 Read ai-hedge-fund（学习用，不运行）
 
